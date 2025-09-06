@@ -115,6 +115,11 @@ def update_figs(cities, variable):
         yaxis_showticklabels=False
     )  
 
+    # Arredonda as bordas das barras - não funciona no horizontal
+    # fig_city.update_traces(
+    #     marker_cornerradius=5
+    # )
+
     fig_payment.update_layout(
         xaxis_title=None,
         yaxis_title=dict(
@@ -181,4 +186,4 @@ def update_figs(cities, variable):
 # ========== Run the app ==========
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8050)
+    app.run(debug=False)
