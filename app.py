@@ -45,18 +45,36 @@ app.layout = html.Div([
                             options=["Gross income", "Rating"],
                             value='Gross income',
                             inputStyle={"margin-right": "5px"}
+                        ),
+
+                        html.Br(),
+
+                        html.Label("Nível de Data", htmlFor="dropdown-date-level"),
+                        dcc.Dropdown(
+                            id="dropdown-date-level",
+                            options=[
+                                {"label": "Ano", "value": "Ano"},
+                                {"label": "Mês", "value": "Mes"},
+                                {"label": "Dia", "value": "Dia"}
+                            ],
+                            value="Ano",
+                            clearable=False,
+                            style={"margin-bottom": "10px"}
                         )
+
                     ], className='p-3')
                 ]),
             ], sm=2, md=2, lg=2, className="h-100"),
             dbc.Col([
                 dbc.Row([
-                    dbc.Col([dcc.Graph(id='city_fig')], sm=4, className="h-100"),
-                    dbc.Col([dcc.Graph(id='gender_fig')], sm=4, className="h-100"),
-                    dbc.Col([dcc.Graph(id='payment_fig')], sm=4, className="h-100")
+                    dbc.Col([dcc.Graph(id='city_fig')], sm=4, className="h-80"),
+                    dbc.Col([dcc.Graph(id='gender_fig')], sm=4, className="h-80"),
+                    dbc.Col([dcc.Graph(id='payment_fig')], sm=4, className="h-80")
                 ], className="h-100"),
                 dbc.Row([
-                    dcc.Graph(id='income_per_date_fig', style={"height": "40vh"})
+                    html.Div([
+                        dcc.Graph(id='income_per_date_fig', style={"height": "40vh"})
+                    ])
                 ], className="h-100"),
                 dbc.Row([
                     dcc.Graph(id='income_per_product_fig', style={"height": "40vh"})
@@ -68,19 +86,20 @@ app.layout = html.Div([
 
 # ========== Callbacks ==========
 @app.callback(
-        [
-            Output('payment_fig', 'figure'),
-            Output('income_per_product_fig', 'figure'),
-            Output('city_fig', 'figure'),
-            Output('income_per_date_fig', 'figure'),
-            Output('gender_fig', 'figure'),
-        ],
-        [
-            Input('checklist-cities', 'value'),
-            Input('radio-variable', 'value')
-        ]
-        )
-def update_figs(cities, variable):
+    [
+        Output('payment_fig', 'figure'),
+        Output('income_per_product_fig', 'figure'),
+        Output('city_fig', 'figure'),
+        Output('income_per_date_fig', 'figure'),
+        Output('gender_fig', 'figure'),
+    ],
+    [
+        Input('checklist-cities', 'value'),
+        Input('radio-variable', 'value'),
+        Input('dropdown-date-level', 'value')
+    ]
+)
+def update_figs(cities, variable, date_level):
 
     var = variable.lower() if variable == 'Gross income' else variable
 
@@ -94,9 +113,25 @@ def update_figs(cities, variable):
 
     df_payment = df_filtered.groupby("Payment")[var].apply(operation).to_frame().reset_index()
 
-    df_income_time = df_filtered.groupby("Date")[var].apply(operation).to_frame().reset_index().sort_values(by=var, ascending=False)
+    # Adiciona colunas de hierarquia de data
+    df_filtered['Ano'] = df_filtered['Date'].dt.year
+    df_filtered['Mes'] = df_filtered['Date'].dt.month
+    df_filtered['Dia'] = df_filtered['Date'].dt.day
+
+    if date_level == "Ano":
+        df_income_time = df_filtered.groupby("Ano")[var].apply(operation).to_frame().reset_index().sort_values(by=var, ascending=False)
+        x_col = "Ano"
+    elif date_level == "Mes":
+        df_income_time = df_filtered.groupby(["Ano", "Mes"])[var].apply(operation).to_frame().reset_index().sort_values(by=var, ascending=False)
+        df_income_time["Ano-Mes"] = df_income_time["Ano"].astype(str) + "-" + df_income_time["Mes"].astype(str).str.zfill(2)
+        x_col = "Ano-Mes"
+    else:
+        df_income_time = df_filtered.groupby(["Ano", "Mes", "Dia"])[var].apply(operation).to_frame().reset_index().sort_values(by=var, ascending=False)
+        df_income_time["Ano-Mes-Dia"] = df_income_time["Ano"].astype(str) + "-" + df_income_time["Mes"].astype(str).str.zfill(2) + "-" + df_income_time["Dia"].astype(str).str.zfill(2)
+        x_col = "Ano-Mes-Dia"
 
     df_product_income = df_filtered.groupby(["Product line", "City"])[var].apply(operation).to_frame().reset_index().sort_values(by=var, ascending=False)
+
 
     fig_city = px.bar(df_city, x='City', y=var, color='City', title=f'{variable}\nby City', text_auto=True)
 
@@ -106,19 +141,34 @@ def update_figs(cities, variable):
 
     fig_product_income = px.bar(df_product_income, x=var, y='Product line', color='City', title=f'{variable} by Product line', orientation='h', text=[f'R$ {var:.2f}' for var in df_product_income[var]], barmode='relative')
 
-    fig_income_date = px.bar(df_income_time, y=var, x='Date', barmode='relative', title=f'{variable} by Date')
+    fig_income_date = px.bar(df_income_time, y=var, x=x_col, barmode='relative', title=f'{variable} by {date_level}')
+
 
     fig_city.update_layout(
         xaxis_title=None,
         yaxis_title=None,
         yaxis_showgrid=False,
-        yaxis_showticklabels=False
-    )  
+        yaxis_showticklabels=False,
+        margin=dict(t=40, b=40, l=0, r=0),
+        bargap=0  # Quanto menor, mais próximas as barras ficam (0 = encostadas)
+    ) 
 
-    # Arredonda as bordas das barras - não funciona no horizontal
-    # fig_city.update_traces(
-    #     marker_cornerradius=5
-    # )
+    fig_city.update_traces(
+        width=0.5  # 0.5 é um exemplo, ajuste conforme necessário
+    )
+
+    for fig in [fig_city, fig_payment, fig_gender, fig_income_date, fig_product_income]:
+        # Arredonda as bordas das barras - não funciona no horizontal
+        fig.update_traces(
+            textposition='outside',
+            marker_cornerradius=4
+        )
+        fig.update_layout(
+            legend_title_text=None
+        )
+
+
+
 
     fig_payment.update_layout(
         xaxis_title=None,
@@ -127,10 +177,11 @@ def update_figs(cities, variable):
         ),
         xaxis_showgrid=False,
         xaxis_showticklabels=False,
-        plot_bgcolor='rgba(0,0,0,0)',
+        # plot_bgcolor='rgba(0,0,0,0)',
         yaxis={
             'categoryorder': 'total ascending',
-        }
+        },
+        margin=dict(t=40, b=40, l=0, r=0)
     )     
 
     fig_payment.update_yaxes(
@@ -138,9 +189,11 @@ def update_figs(cities, variable):
     )
 
     fig_gender.update_layout(
+        xaxis_title=None,
         yaxis_title=None,
         yaxis_showticklabels=False,
-        yaxis_showgrid=False
+        yaxis_showgrid=False,
+        margin=dict(t=40, b=40, l=0, r=0)
     )
 
     fig_income_date.update_layout(
@@ -148,6 +201,10 @@ def update_figs(cities, variable):
         yaxis_showticklabels=False,
         yaxis_showgrid=False
     )
+
+    # fig_income_date.update_traces(
+    #     width=0.5  # 0.5 é um exemplo, ajuste conforme necessário
+    # )
 
     fig_product_income.update_layout(
         xaxis_title=None,
@@ -186,4 +243,4 @@ def update_figs(cities, variable):
 # ========== Run the app ==========
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
