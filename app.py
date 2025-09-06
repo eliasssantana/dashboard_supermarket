@@ -24,54 +24,46 @@ app.layout = html.Div([
     dbc.Container([
         dbc.Row([
             html.H1("Supermarket Sales Analysis", className="text-center")
-        ], style={"height": "5vh"}, className="mb-3 vw-100"),
+        ], className="mb-3 mt-3 vw-100"),
         dbc.Row([
             dbc.Col([
                 dbc.Card([
                     dbc.CardBody([
                         html.H4("Filtros", className='text-center'),
                         html.Br(),
-
                         html.Label("Cidades", id='label-checklist', htmlFor='checklist-cities'),
-
                         dcc.Checklist(
                             id='checklist-cities',
-                            options=[
-                                {'label': cidade, 'value': cidade} for cidade in df_data['City'].unique()
-                            ],
-                            value= df_data['City'].unique(),
+                            options=[{'label': cidade, 'value': cidade} for cidade in df_data['City'].unique()],
+                            value=df_data['City'].unique(),
                             inputStyle={"margin-right": "5px"}
                         ),
-
                         html.Br(),
-
                         html.Label("Variável de análise", id='label-radio', htmlFor='radio-variable'),
-
                         dcc.RadioItems(
                             id='radio-variable',
                             options=["Gross income", "Rating"],
                             value='Gross income',
                             inputStyle={"margin-right": "5px"}
                         )
-                    ], className='p-3 h-90')
-                ], className='vh-100'),
-            ], style={"height": "90%"}, sm=2, md=2, lg=2),
+                    ], className='p-3')
+                ]),
+            ], sm=2, md=2, lg=2, className="h-100"),
             dbc.Col([
                 dbc.Row([
-                    dbc.Col([dcc.Graph(id='city_fig'),], style={"height": "100%"}, sm=4),
-                    dbc.Col([dcc.Graph(id='gender_fig'),], style={"height": "100%"}, sm=4),
-                    dbc.Col([dcc.Graph(id='payment_fig'),], style={"height": "100%"}, sm=4)
-                ], style ={"height": "30vh"}),
+                    dbc.Col([dcc.Graph(id='city_fig')], sm=4, className="h-100"),
+                    dbc.Col([dcc.Graph(id='gender_fig')], sm=4, className="h-100"),
+                    dbc.Col([dcc.Graph(id='payment_fig')], sm=4, className="h-100")
+                ], className="h-100"),
                 dbc.Row([
-                    dcc.Graph(id='income_per_date_fig')
-                ], style ={"height": "30vh"}, className="mb-3"),
+                    dcc.Graph(id='income_per_date_fig', style={"height": "40vh"})
+                ], className="h-100"),
                 dbc.Row([
-                    dcc.Graph(id='income_per_product_fig')
-                ], style ={"height": "30vh"})
-
-            ], className="d-flex flex-column justify-content-between", sm=10, md=10, lg=10)
-        ], className="vh-100 vw-100"),
-    ],className="vh-100 vw-100"),
+                    dcc.Graph(id='income_per_product_fig', style={"height": "40vh"})
+                ], className="h-100")
+            ], sm=10, md=10, lg=10, className="h-100 d-flex flex-column justify-content-between"),
+        ], className="vw-100 h-100"),
+    ], className="vh-100 vw-100 h-100"),
 ])
 
 # ========== Callbacks ==========
