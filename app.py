@@ -61,7 +61,7 @@ app.layout = html.Div([
                 dbc.Row([
                     dcc.Graph(id='income_per_product_fig', style={"height": "40vh"})
                 ], className="h-100")
-            ], sm=10, md=10, lg=10, className="h-100 d-flex flex-column justify-content-between"),
+            ], sm=10, md=10, lg=10, className="d-flex flex-column justify-content-between"),
         ], className="vw-100 h-100"),
     ], className="vh-100 vw-100 h-100"),
 ])
